@@ -15,5 +15,10 @@ authors = ["Alec Winter"]
 [workspace.dependencies]
 awake-core = { path = "crates/awake-core", version = "0.1.0" }
 
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
+
 [profile.release]
 strip = true
