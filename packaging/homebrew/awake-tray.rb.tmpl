@@ -1,0 +1,36 @@
+cask "awake-tray" do
+  version "@VERSION@"
+  sha256 "@SHA256@"
+
+  url "https://github.com/@REPO@/releases/download/v#{version}/Awake_#{version}_universal.dmg"
+  name "Awake"
+  desc "Keep the machine awake and Teams/Slack showing Available"
+  homepage "https://github.com/@REPO@"
+
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
+  auto_updates true
+  depends_on macos: ">= :big_sur"
+
+  app "Awake.app"
+
+  uninstall quit:      "dev.awake.tray",
+            launchctl: "Awake"
+
+  zap trash: [
+    "~/Library/Application Support/dev.awake.tray",
+    "~/Library/Caches/dev.awake.tray",
+    "~/Library/LaunchAgents/Awake.plist",
+    "~/Library/Logs/dev.awake.tray",
+    "~/Library/WebKit/dev.awake.tray",
+  ]
+
+  caveats <<~EOS
+    Awake needs Accessibility access to keep Teams/Slack "Available":
+      System Settings → Privacy & Security → Accessibility → enable Awake.
+    Use "Grant Accessibility access…" in the menu bar icon to open that pane.
+  EOS
+end
