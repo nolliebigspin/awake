@@ -4,49 +4,122 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>awake: keep your machine awake and your status Available</title>
-  <meta name="description" content="Tray app and CLI for macOS, Windows and Linux that inhibits sleep and resets the OS idle timer, so VPNs stay connected and chat apps keep showing Available.">
+  <meta name="description" content="Tray app and CLI for macOS, Windows and Linux that inhibits sleep and resets the OS idle timer, so VPNs stay connected and chat apps keep showing Available. With a stop timer.">
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="stylesheet" href="/style.css">
+  <script src="/copy.js" defer></script>
 </head>
 <body>
   <main>
-    <img class="icon" src="/icon.png" alt="" width="72" height="72">
-    <h1>awake</h1>
-    <p class="lead">Keep your machine awake and your status Available.</p>
+    <header class="hero">
+      <img class="icon" src="/icon.png" alt="" width="88" height="88">
+      <h1>awake</h1>
+      <p class="lead">Keep your machine awake and your status Available.</p>
+      <p>A small menu bar app and command-line tool. It stops your computer from sleeping, and keeps Teams, Slack and similar apps from switching you to Away. Set a timer, and it switches itself off.</p>
+      <div class="downloads">
+        <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-macOS.dmg">Download for macOS</a>
+        <a class="button secondary" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Windows-Setup.exe">Windows</a>
+        <a class="button secondary" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Linux-amd64.deb">Linux</a>
+      </div>
+      <p class="small">Free and open source · MIT License · <a href="https://github.com/nolliebigspin/awake">Source on GitHub</a></p>
+    </header>
 
-    <p>Most "prevent sleep" tools only keep the machine running. Chat apps decide whether you are Away from the system's input idle time, which keeps counting. awake handles both:</p>
-    <ul>
-      <li><strong>Inhibits system sleep</strong>, and optionally display sleep, so VPNs, agents and connections stay up.</li>
-      <li><strong>Resets the idle timer</strong> and re-reads it afterwards to verify the reset worked. If a method doesn't work, awake tries the next one.</li>
-      <li><strong>macOS, Windows and Linux</strong>, as a menu bar / tray app or a CLI that can run as a login service.</li>
-      <li><strong>Open source</strong> under the MIT License. No account, no telemetry.</li>
-    </ul>
+    <section class="features" aria-label="Features">
+      <div class="card">
+        <h3>Stays Available</h3>
+        <p>Chat apps go by how long you haven't touched the keyboard or mouse. awake resets that timer and checks that the reset really worked.</p>
+      </div>
+      <div class="card">
+        <h3>Stops when you want</h3>
+        <p>Keep awake indefinitely or for 30 minutes up to 24 hours. When the time is up, awake switches off and lets you know.</p>
+      </div>
+      <div class="card">
+        <h3>macOS, Windows, Linux</h3>
+        <p>A tray app for everyday use and a CLI for scripts and servers. Both keep VPNs, downloads and remote sessions alive.</p>
+      </div>
+    </section>
 
-    <h2>Install</h2>
+    <section id="download">
+      <h2>Download</h2>
+      <div class="platforms">
+        <div class="platform">
+          <div>
+            <h3>macOS</h3>
+            <p class="small">macOS 11 or later · Apple silicon and Intel</p>
+          </div>
+          <div class="platform-links">
+            <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-macOS.dmg">.dmg</a>
+          </div>
+        </div>
+        <div class="platform">
+          <div>
+            <h3>Windows</h3>
+            <p class="small">Windows 10 or 11 · x64 · no admin rights needed</p>
+          </div>
+          <div class="platform-links">
+            <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Windows-Setup.exe">.exe</a>
+            <a class="alt" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Windows.msi">.msi</a>
+          </div>
+        </div>
+        <div class="platform">
+          <div>
+            <h3>Linux</h3>
+            <p class="small">x86_64 · Ubuntu 22.04 or newer, most other distros via AppImage</p>
+          </div>
+          <div class="platform-links">
+            <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Linux-amd64.deb">.deb</a>
+            <a class="alt" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Linux-x86_64.AppImage">.AppImage</a>
+          </div>
+        </div>
+      </div>
+      <p class="small">On a Mac with Homebrew: <code>brew install --cask nolliebigspin/tap/awake-tray</code> · <a href="https://github.com/nolliebigspin/awake/releases/latest">All files and checksums</a></p>
+    </section>
 
-    <h3>Tray app</h3>
-    <div class="downloads">
-      <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-macOS.dmg">macOS <span>.dmg</span></a>
-      <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Windows-Setup.exe">Windows <span>.exe</span></a>
-      <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Linux-amd64.deb">Linux <span>.deb</span></a>
-    </div>
-    <p class="small">macOS 11+ (Apple silicon and Intel) · Windows 10/11 x64 · Linux x86_64. Also available: <a href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Windows.msi">.msi</a>, <a href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Linux-x86_64.AppImage">.AppImage</a>, <a href="https://github.com/nolliebigspin/awake/releases/latest">all files and checksums</a>.</p>
-    <p class="small">Or with Homebrew:</p>
-    <pre><code>brew install --cask nolliebigspin/tap/awake-tray</code></pre>
+    <section id="cli">
+      <h2>Command line</h2>
+      <p>Prefer the terminal? The <code>awake</code> command does the same as the app.</p>
 
-    <h3>CLI</h3>
-    <pre><code>brew install nolliebigspin/tap/awake</code></pre>
-    <p class="small">Or with the install script (macOS / Linux):</p>
-    <pre><code>curl --proto '=https' --tlsv1.2 -LsSf https://github.com/nolliebigspin/awake/releases/latest/download/awake-cli-installer.sh | sh</code></pre>
-    <p class="small">Windows (PowerShell):</p>
-    <pre><code>powershell -ExecutionPolicy Bypass -c "irm https://github.com/nolliebigspin/awake/releases/latest/download/awake-cli-installer.ps1 | iex"</code></pre>
-    <p class="small">Prebuilt binaries and building from source: see the <a href="https://github.com/nolliebigspin/awake#install">README</a>.</p>
+      <h3 class="step"><span>1</span> Install</h3>
+      <p class="label">macOS &amp; Linux · Homebrew</p>
+      <pre><code>brew install nolliebigspin/tap/awake</code></pre>
+      <p class="label">macOS &amp; Linux · install script</p>
+      <pre><code>curl --proto '=https' --tlsv1.2 -LsSf https://github.com/nolliebigspin/awake/releases/latest/download/awake-cli-installer.sh | sh</code></pre>
+      <p class="label">Windows · PowerShell</p>
+      <pre><code>powershell -ExecutionPolicy Bypass -c "irm https://github.com/nolliebigspin/awake/releases/latest/download/awake-cli-installer.ps1 | iex"</code></pre>
 
-    <h3>macOS</h3>
-    <p>To reset the idle timer, awake posts synthetic input, which requires <strong>Accessibility</strong> access. The tray app has a menu item that opens the right settings pane.</p>
+      <h3 class="step"><span>2</span> Use</h3>
+      <dl class="commands">
+        <dt><code>awake</code></dt>
+        <dd>Keep awake until you press Ctrl+C.</dd>
+        <dt><code>awake --for 3h</code></dt>
+        <dd>Stop automatically after 3 hours. Also <code>30m</code>, <code>1h30m</code> and so on.</dd>
+        <dt><code>awake status --test</code></dt>
+        <dd>Check which methods work on this machine.</dd>
+        <dt><code>awake install</code></dt>
+        <dd>Start at login. Undo with <code>awake uninstall</code>.</dd>
+      </dl>
+      <p class="small">All options: <code>awake --help</code> or the <a href="https://github.com/nolliebigspin/awake#usage">README</a>.</p>
+    </section>
 
-    <h2>Use responsibly</h2>
-    <p class="note">awake simulates keyboard and mouse input (an F15 key press or a 1&nbsp;px mouse move). Security software on managed devices may flag or block this, and it may be against your employer's IT or presence policy. Check with your IT department before using it on a work machine. You are responsible for how you use it.</p>
+    <section id="faq">
+      <h2>Questions</h2>
+      <details>
+        <summary>Why does macOS ask for Accessibility access?</summary>
+        <p>On current macOS, the only way to reset the idle timer that chat apps read is a tiny synthetic mouse move, and posting input needs Accessibility access. Without it, awake still keeps the Mac awake, but Teams may show you as Away. The app's menu has a <em>Grant Accessibility access…</em> item that opens the right settings pane.</p>
+      </details>
+      <details>
+        <summary>Does it work on Linux with Wayland?</summary>
+        <p>X11 works fully. On Wayland it depends on the desktop: KDE works, GNOME needs a one-time uinput setup. <code>awake status --test</code> tells you what works, and the <a href="https://github.com/nolliebigspin/awake#linux-tray-and-wayland-limitations">README</a> explains the details.</p>
+      </details>
+      <details>
+        <summary>Can I use it on my work computer?</summary>
+        <p>awake simulates keyboard and mouse input (an F15 key press or a 1&nbsp;px mouse move). Security software on managed devices may flag or block this, and it may be against your employer's IT or presence policy. Check with your IT department first. You are responsible for how you use it.</p>
+      </details>
+      <details>
+        <summary>Does awake collect any data?</summary>
+        <p>No. There is no account, telemetry or tracking. The app only contacts GitHub when you click <em>Check for updates</em>. See the <a href="/privacy">privacy policy</a>.</p>
+      </details>
+    </section>
   </main>
 
   <footer>
