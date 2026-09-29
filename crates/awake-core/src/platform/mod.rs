@@ -2,8 +2,10 @@ use crate::{declare_verified, Diagnostics, Method, Result};
 
 #[cfg(target_os = "macos")]
 mod macos;
-#[cfg(not(target_os = "macos"))]
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
 mod unsupported;
+#[cfg(target_os = "windows")]
+mod windows;
 
 /// Platform backend. Not `Send`: create it on the thread that uses it (on
 /// Windows the sleep inhibition is bound to the calling thread).
@@ -42,7 +44,9 @@ pub trait Platform {
 pub fn new_platform() -> Box<dyn Platform> {
     #[cfg(target_os = "macos")]
     return Box::new(macos::MacPlatform::new());
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    return Box::new(windows::WinPlatform::new());
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     return Box::new(unsupported::Unsupported);
 }
 
