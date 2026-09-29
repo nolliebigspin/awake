@@ -59,6 +59,7 @@ The tray app updates itself from GitHub Releases: **Check for updates** in the m
 
 ```sh
 awake                       # run until Ctrl+C; releases everything on exit
+awake --for 3h              # stop by itself after 3 hours (also 30m, 1h30m, …)
 awake --interval 30 --threshold 20 --display --verbose
 awake status                # platform, idle time, methods, permissions
 awake status --test         # really try each method and verify it (hands off for a few seconds)
@@ -71,6 +72,7 @@ awake uninstall
 | `--interval <s>` | 60 | How often the idle time is checked |
 | `--threshold <s>` | 20 | Reset the idle timer once idle is longer than this (minimum 3) |
 | `--display` | off | Also keep the display awake |
+| `--for <duration>` | none | Stop automatically after this long, e.g. `30m`, `1h`, `1h30m`. Not available for `awake install` |
 | `--verbose` | off | Log every tick and every failed method |
 | `--log-file <path>` | stdout | Append the log to a file |
 
@@ -84,7 +86,8 @@ With the defaults, the idle time never gets much past **interval + threshold** (
 
 ### Tray menu
 
-- **Keep awake**: on/off. The icon shows an open eye when on and a closed eye when off.
+- **Keep awake**: on/off. The icon shows an open eye when on and a closed eye when off. With a timer running it reads *Keep awake · 2h 59m left*.
+- **Stop after**: Never, 30 minutes, 1, 3, 6, 12 or 24 hours. Picking a time turns Keep awake on, and when it runs out Awake switches off and shows a notification. Toggling Keep awake by hand cancels the timer. The timer is not remembered across restarts.
 - **Idle: Xs**: live system idle time, refreshed every 2 s.
 - **Status line**: which method is keeping you Available, or what's wrong.
 - **Check interval**: 30, 60 or 120 s. The threshold is fixed at 20 s.

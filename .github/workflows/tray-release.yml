@@ -56,7 +56,7 @@ jobs:
           id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n1)
           if [ -z "$id" ]; then
             id=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" \
-              -f tag_name="$TAG" -F draft=true \
+              -f tag_name="$TAG" -F draft=true -F generate_release_notes=true \
               -f name="Awake $TAG" \
               -f body="Tray app installers (.dmg, .msi, .exe, .deb, .AppImage) and CLI installers for $TAG." \
               --jq .id)
