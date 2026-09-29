@@ -49,9 +49,9 @@ pub fn parse_duration(s: &str) -> Result<Duration, String> {
 }
 
 /// Human-readable remaining time: `2h 59m`, `45m`, or `30s` under a minute.
-/// Minutes are rounded up, so a fresh 3h timer reads `3h`, not `2h 59m`.
+/// Rounds up, so a fresh 3h timer reads `3h` and the last second reads `1s`.
 pub fn format_remaining(d: Duration) -> String {
-    let secs = d.as_secs();
+    let secs = d.as_secs() + u64::from(d.subsec_nanos() > 0);
     if secs < 60 {
         return format!("{secs}s");
     }
@@ -115,5 +115,9 @@ mod tests {
         assert_eq!(f(3600), "1h");
         assert_eq!(f(3 * 3600 - 30), "3h");
         assert_eq!(f(3 * 3600 - 61), "2h 59m");
+        let ms = |ms: u64| format_remaining(Duration::from_millis(ms));
+        assert_eq!(ms(300), "1s");
+        assert_eq!(ms(58_300), "59s");
+        assert_eq!(ms(59_300), "1m");
     }
 }

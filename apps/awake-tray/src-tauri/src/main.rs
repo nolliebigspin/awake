@@ -6,7 +6,7 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 
 use awake_core::{
     accessibility_trusted, format_remaining, new_platform, request_accessibility, utc_timestamp,
@@ -29,7 +29,11 @@ const TRAY_ID: &str = "awake";
 const STORE_FILE: &str = "settings.json";
 const INTERVALS: [u64; 3] = [30, 60, 120];
 const THRESHOLD_SECS: u64 = 20;
-const POLL: Duration = Duration::from_secs(2);
+/// Menu refresh rate. A whole number of ticks per second keeps the idle and
+/// countdown numbers changing exactly one second apart.
+const TICK: Duration = Duration::from_millis(250);
+/// Accessibility changes are rare; check every 2 s.
+const AX_CHECK_EVERY: u32 = 8;
 /// "Stop after" presets: minutes and menu label.
 const TIMERS: [(u64, &str); 6] = [
     (30, "30 minutes"),
@@ -334,10 +338,13 @@ fn short_error(e: &Error) -> String {
     }
 }
 
-/// Live idle line, plus Accessibility changes (which add/remove a menu item).
+/// Live idle line and timer countdown, plus Accessibility changes (which
+/// add/remove a menu item). Menu text is only touched when it changes.
 fn spawn_poller(app: AppHandle) {
     std::thread::spawn(move || {
         let platform = new_platform();
+        let mut start = Instant::now();
+        let mut n: u32 = 0;
         loop {
             check_timer(&app);
             let idle = match platform.idle_seconds() {
@@ -346,14 +353,28 @@ fn spawn_poller(app: AppHandle) {
             };
             set_text(&app, |t| &mut t.idle, &idle, |i| &i.idle);
 
-            let trusted = accessibility_trusted();
-            let state = app.state::<AppState>();
-            let changed = std::mem::replace(&mut *lock(&state.ax_trusted), trusted) != trusted;
-            if changed {
-                log(&app, &format!("Accessibility trusted: {trusted:?}"));
-                let _ = rebuild_menu(&app);
+            if n % AX_CHECK_EVERY == 0 {
+                let trusted = accessibility_trusted();
+                let state = app.state::<AppState>();
+                let changed = std::mem::replace(&mut *lock(&state.ax_trusted), trusted) != trusted;
+                if changed {
+                    log(&app, &format!("Accessibility trusted: {trusted:?}"));
+                    let _ = rebuild_menu(&app);
+                }
             }
-            std::thread::sleep(POLL);
+
+            // Sleep until the next point on a fixed grid, not for a fixed
+            // time after the work, so the schedule never drifts.
+            n = n.wrapping_add(1);
+            let next = start + TICK * n;
+            match next.checked_duration_since(Instant::now()) {
+                Some(wait) => std::thread::sleep(wait),
+                // Fell behind (e.g. a stall): restart the grid from now.
+                None => {
+                    start = Instant::now();
+                    n = 0;
+                }
+            }
         }
     });
 }
