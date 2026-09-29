@@ -25,15 +25,22 @@
     <h2>Install</h2>
 
     <h3>Tray app</h3>
-    <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest">Download from GitHub</a>
-    <p class="small">.dmg for macOS (universal), .exe / .msi for Windows, .deb / .AppImage for Linux.</p>
+    <div class="downloads">
+      <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-macOS.dmg">macOS <span>.dmg</span></a>
+      <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Windows-Setup.exe">Windows <span>.exe</span></a>
+      <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Linux-amd64.deb">Linux <span>.deb</span></a>
+    </div>
+    <p class="small">macOS 11+ (Apple silicon and Intel) · Windows 10/11 x64 · Linux x86_64. Also available: <a href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Windows.msi">.msi</a>, <a href="https://github.com/nolliebigspin/awake/releases/latest/download/Awake-Linux-x86_64.AppImage">.AppImage</a>, <a href="https://github.com/nolliebigspin/awake/releases/latest">all files and checksums</a>.</p>
+    <p class="small">Or with Homebrew:</p>
     <pre><code>brew install --cask nolliebigspin/tap/awake-tray</code></pre>
 
     <h3>CLI</h3>
     <pre><code>brew install nolliebigspin/tap/awake</code></pre>
     <p class="small">Or with the install script (macOS / Linux):</p>
     <pre><code>curl --proto '=https' --tlsv1.2 -LsSf https://github.com/nolliebigspin/awake/releases/latest/download/awake-cli-installer.sh | sh</code></pre>
-    <p class="small">Windows, npm and building from source are covered in the <a href="https://github.com/nolliebigspin/awake#install">README</a>.</p>
+    <p class="small">Windows (PowerShell):</p>
+    <pre><code>powershell -ExecutionPolicy Bypass -c "irm https://github.com/nolliebigspin/awake/releases/latest/download/awake-cli-installer.ps1 | iex"</code></pre>
+    <p class="small">Prebuilt binaries and building from source: see the <a href="https://github.com/nolliebigspin/awake#install">README</a>.</p>
 
     <h3>macOS</h3>
     <p>To reset the idle timer, awake posts synthetic input, which requires <strong>Accessibility</strong> access. The tray app has a menu item that opens the right settings pane.</p>

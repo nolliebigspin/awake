@@ -46,9 +46,9 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "REPLACE_WITH_TAURI_UPDATER_PUBLIC_KEY",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE0QkZEMUYwQzAyRkU3M0YKUldRLzV5L0E4TkcvcEJEa2xLUWJaYmYrcGdwTFAxYXkyaXhqUC9ta3UzcGVHMDh3U285Umh0MjgK",
       "endpoints": [
-        "https://github.com/OWNER/awake/releases/latest/download/latest.json"
+        "https://github.com/nolliebigspin/awake/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

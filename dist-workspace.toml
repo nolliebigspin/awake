@@ -6,7 +6,7 @@ members = ["cargo:."]
 [dist]
 cargo-dist-version = "0.33.0"
 ci = "github"
-installers = ["shell", "powershell", "homebrew", "npm"]
+installers = ["shell", "powershell", "homebrew"]
 targets = [
   "aarch64-apple-darwin",
   "x86_64-apple-darwin",
@@ -17,12 +17,9 @@ targets = [
 install-path = "CARGO_HOME"
 install-updater = false
 # Homebrew: formula `awake` in your tap (needs HOMEBREW_TAP_TOKEN).
-tap = "OWNER/homebrew-tap"
+tap = "nolliebigspin/homebrew-tap"
 formula = "awake"
-# npm: `awake`/`awake-cli` are taken, so publish as @<scope>/awake (needs NPM_TOKEN).
-npm-scope = "@owner"
-npm-package = "awake"
-publish-jobs = ["homebrew", "npm"]
+publish-jobs = ["homebrew"]
 # tray-release.yml creates the GitHub Release; dist uploads into it.
 create-release = false
 pr-run-mode = "plan"

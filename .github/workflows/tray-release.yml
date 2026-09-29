@@ -175,6 +175,22 @@ jobs:
     needs: [create-release, build]
     runs-on: ubuntu-latest
     steps:
+      # Version-less copies so the website can link to
+      # releases/latest/download/<name> without knowing the version.
+      - name: Upload installers under stable names
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir stable && cd stable
+          fetch() {
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern "$1" --output "$2"
+          }
+          fetch "*_universal.dmg"   Awake-macOS.dmg
+          fetch "*_x64-setup.exe"   Awake-Windows-Setup.exe
+          fetch "*_x64_en-US.msi"   Awake-Windows.msi
+          fetch "*_amd64.deb"       Awake-Linux-amd64.deb
+          fetch "*_amd64.AppImage"  Awake-Linux-x86_64.AppImage
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber ./*
       - name: Publish the draft release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

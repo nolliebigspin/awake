@@ -106,6 +106,22 @@ li + li {
   opacity: 0.9;
 }
 
+.downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.downloads .button {
+  margin: 0;
+}
+
+.button span {
+  font-weight: 400;
+  opacity: 0.75;
+}
+
 code,
 pre {
   font: 0.875rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
