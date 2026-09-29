@@ -185,7 +185,12 @@ crates/awake-cli    `awake` binary (clap), login-service installers
 apps/awake-tray     Tauri v2 tray-only app (src-tauri/), empty frontend (dist/)
 packaging/          Homebrew cask template, Linux udev rule
 .github/workflows   release.yml (cargo-dist, CLI), tray-release.yml (tauri-action)
+site/               Static website (Vercel)
 ```
+
+### Website
+
+`site/` is plain HTML and CSS with no build step: a landing page and a privacy policy. The imprint links to [awinter.dev/imprint](https://awinter.dev/imprint). To deploy, import the repository in Vercel, set **Root Directory** to `site` and **Framework Preset** to *Other*. `site/vercel.json` sets clean URLs, the `/imprint` redirect and the security headers. Preview it locally with `python3 -m http.server -d site`.
 
 ## Releasing
 

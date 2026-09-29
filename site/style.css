@@ -1,0 +1,156 @@
+:root {
+  --bg: #fafaf9;
+  --fg: #1c1917;
+  --muted: #57534e;
+  --line: #e7e5e4;
+  --code-bg: #f0efed;
+  --accent: #15803d;
+  --accent-fg: #ffffff;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c0a09;
+    --fg: #e7e5e4;
+    --muted: #a8a29e;
+    --line: #292524;
+    --code-bg: #1c1917;
+    --accent: #4ade80;
+    --accent-fg: #052e16;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+main,
+footer {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+main {
+  padding-top: 64px;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+h1 {
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 16px 0 8px;
+}
+
+h2 {
+  font-size: 1.125rem;
+  margin: 48px 0 12px;
+}
+
+h3 {
+  font-size: 1rem;
+  margin: 24px 0 8px;
+}
+
+p,
+ul {
+  margin: 0 0 16px;
+}
+
+ul {
+  padding-left: 20px;
+}
+
+li + li {
+  margin-top: 6px;
+}
+
+.icon {
+  display: block;
+  width: 72px;
+  height: 72px;
+}
+
+.lead {
+  font-size: 1.125rem;
+  color: var(--muted);
+}
+
+.button {
+  display: inline-block;
+  margin: 8px 0 16px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.button:hover {
+  opacity: 0.9;
+}
+
+code,
+pre {
+  font: 0.875rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+code {
+  background: var(--code-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+pre {
+  background: var(--code-bg);
+  padding: 12px 14px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0 0 16px;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+.note {
+  border-left: 3px solid var(--line);
+  padding-left: 14px;
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+footer {
+  margin-top: 64px;
+  padding-top: 24px;
+  padding-bottom: 48px;
+  border-top: 1px solid var(--line);
+}
+
+footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-bottom: 12px;
+}

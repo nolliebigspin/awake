@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>awake: keep your machine awake and your status Available</title>
+  <meta name="description" content="Tray app and CLI for macOS, Windows and Linux that inhibits sleep and resets the OS idle timer, so VPNs stay connected and chat apps keep showing Available.">
+  <link rel="icon" href="/favicon.png" type="image/png">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <img class="icon" src="/icon.png" alt="" width="72" height="72">
+    <h1>awake</h1>
+    <p class="lead">Keep your machine awake and your status Available.</p>
+
+    <p>Most "prevent sleep" tools only keep the machine running. Chat apps decide whether you are Away from the system's input idle time, which keeps counting. awake handles both:</p>
+    <ul>
+      <li><strong>Inhibits system sleep</strong>, and optionally display sleep, so VPNs, agents and connections stay up.</li>
+      <li><strong>Resets the idle timer</strong> and re-reads it afterwards to verify the reset worked. If a method doesn't work, awake tries the next one.</li>
+      <li><strong>macOS, Windows and Linux</strong>, as a menu bar / tray app or a CLI that can run as a login service.</li>
+      <li><strong>Open source</strong> under the MIT License. No account, no telemetry.</li>
+    </ul>
+
+    <h2>Install</h2>
+
+    <h3>Tray app</h3>
+    <a class="button" href="https://github.com/nolliebigspin/awake/releases/latest">Download from GitHub</a>
+    <p class="small">.dmg for macOS (universal), .exe / .msi for Windows, .deb / .AppImage for Linux.</p>
+    <pre><code>brew install --cask nolliebigspin/tap/awake-tray</code></pre>
+
+    <h3>CLI</h3>
+    <pre><code>brew install nolliebigspin/tap/awake</code></pre>
+    <p class="small">Or with the install script (macOS / Linux):</p>
+    <pre><code>curl --proto '=https' --tlsv1.2 -LsSf https://github.com/nolliebigspin/awake/releases/latest/download/awake-cli-installer.sh | sh</code></pre>
+    <p class="small">Windows, npm and building from source are covered in the <a href="https://github.com/nolliebigspin/awake#install">README</a>.</p>
+
+    <h3>macOS</h3>
+    <p>To reset the idle timer, awake posts synthetic input, which requires <strong>Accessibility</strong> access. The tray app has a menu item that opens the right settings pane.</p>
+
+    <h2>Use responsibly</h2>
+    <p class="note">awake simulates keyboard and mouse input (an F15 key press or a 1&nbsp;px mouse move). Security software on managed devices may flag or block this, and it may be against your employer's IT or presence policy. Check with your IT department before using it on a work machine. You are responsible for how you use it.</p>
+  </main>
+
+  <footer>
+    <nav>
+      <a href="https://github.com/nolliebigspin/awake">GitHub</a>
+      <a href="https://github.com/nolliebigspin/awake/blob/main/LICENSE">MIT License</a>
+      <a href="/privacy">Privacy</a>
+      <a href="https://awinter.dev/imprint">Imprint / Impressum</a>
+    </nav>
+    <p class="small">© 2026 Alec Winter · Made by <a href="https://awinter.dev">awinter.dev</a></p>
+    <p class="small">The software is provided "as is", without warranty of any kind. Microsoft Teams and Slack are trademarks of their respective owners. awake is not affiliated with, endorsed by or sponsored by Microsoft or Slack.</p>
+  </footer>
+</body>
+</html>
