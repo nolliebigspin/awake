@@ -1,0 +1,10 @@
+# Let the logged-in user create a virtual pointer through /dev/uinput, so
+# awake can reset the idle timer on Wayland desktops without an activity API
+# (GNOME). Install:
+#   sudo cp 60-awake-uinput.rules /etc/udev/rules.d/
+#   echo uinput | sudo tee /etc/modules-load.d/uinput.conf
+#   sudo modprobe uinput && sudo udevadm control --reload && sudo udevadm trigger
+# then log out and back in.
+#
+# Security: any program running as you can then inject input too.
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput"
