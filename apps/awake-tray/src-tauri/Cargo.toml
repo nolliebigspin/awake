@@ -1,6 +1,6 @@
 [package]
 name = "awake-tray"
-description = "Tray app: keep the machine awake and Teams/Slack showing \"Available\""
+description = "Tray app: keep the machine awake and Teams/Slack showing Available"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

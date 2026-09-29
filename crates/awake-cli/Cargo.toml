@@ -1,6 +1,6 @@
 [package]
 name = "awake-cli"
-description = "Keep your machine awake and Teams/Slack showing \"Available\""
+description = "Keep your machine awake and Teams/Slack showing Available"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
