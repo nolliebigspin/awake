@@ -16,6 +16,9 @@ targets = [
 ]
 install-path = "CARGO_HOME"
 install-updater = false
+# Build only awake-cli. Without this, dist runs `cargo build --workspace`, which
+# also compiles the Tauri tray app and fails on Linux runners without GTK.
+precise-builds = true
 # Homebrew: formula `awake` in your tap (needs HOMEBREW_TAP_TOKEN).
 tap = "nolliebigspin/homebrew-tap"
 formula = "awake"
