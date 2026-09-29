@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/awake-core", "crates/awake-cli"]
+members = ["crates/awake-core", "crates/awake-cli", "apps/awake-tray/src-tauri"]
 default-members = ["crates/awake-core", "crates/awake-cli"]
 
 [workspace.package]
