@@ -51,12 +51,20 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --draft --verify-tag \
-              --title "Awake $TAG" \
-              --notes "Tray app installers (.dmg, .msi, .exe, .deb, .AppImage) and CLI installers for $TAG."
+          # Reuse the release on re-runs. A new draft can take a moment to show
+          # up in the list, so take its id from the create response instead.
+          id=$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n1)
+          if [ -z "$id" ]; then
+            id=$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" \
+              -f tag_name="$TAG" -F draft=true \
+              -f name="Awake $TAG" \
+              -f body="Tray app installers (.dmg, .msi, .exe, .deb, .AppImage) and CLI installers for $TAG." \
+              --jq .id)
           fi
-          id=$(gh api "repos/$GITHUB_REPOSITORY/releases" --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -n1)
+          if [ -z "$id" ]; then
+            echo "::error::Could not create or find the release for $TAG"
+            exit 1
+          fi
           echo "id=$id" >> "$GITHUB_OUTPUT"
 
   build:
