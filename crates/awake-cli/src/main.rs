@@ -4,9 +4,12 @@ mod service;
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
-use awake_core::{declare_verified, new_platform, Config, Error, Event, Keeper, VERIFY_BELOW_SECS};
+use awake_core::{
+    declare_verified, format_remaining, new_platform, parse_duration, Config, Error, Event, Keeper,
+    VERIFY_BELOW_SECS,
+};
 use clap::{Args, Parser, Subcommand};
 
 use crate::log::Log;
@@ -51,6 +54,9 @@ pub struct RunArgs {
     /// Also keep the display from sleeping.
     #[arg(long)]
     pub display: bool,
+    /// Stop automatically after this long, e.g. 30m, 1h, 1h30m.
+    #[arg(long = "for", value_name = "DURATION", value_parser = parse_duration)]
+    pub duration: Option<Duration>,
     /// Log every tick and every failed method.
     #[arg(short, long)]
     pub verbose: bool,
@@ -77,6 +83,9 @@ fn main() -> ExitCode {
     let result = match cli.command {
         None => run(&cli.run),
         Some(Command::Status { test }) => status(test),
+        Some(Command::Install(args)) if args.duration.is_some() => {
+            Err("--for can't be combined with install".into())
+        }
         Some(Command::Install(args)) => service::install(&args),
         Some(Command::Uninstall) => service::uninstall(),
     };
@@ -111,12 +120,25 @@ fn run(args: &RunArgs) -> Result<(), String> {
         args.threshold,
         if args.display { "kept on" } else { "may sleep" }
     ));
+    if let Some(d) = args.duration {
+        log.line(&format!(
+            "stopping automatically in {}",
+            format_remaining(d)
+        ));
+    }
+    // Wall clock, so time spent asleep anyway (lid closed) still counts.
+    let deadline = args.duration.map(|d| SystemTime::now() + d);
     let (keeper, events) = Keeper::spawn(config);
     let mut printer = Printer::new(args.verbose);
 
     while !stop.load(Ordering::SeqCst) {
         if let Ok(event) = events.recv_timeout(Duration::from_millis(200)) {
             printer.print(&mut log, &event);
+        }
+        if deadline.is_some_and(|d| SystemTime::now() >= d) {
+            let d = args.duration.unwrap_or_default();
+            log.line(&format!("timer ended after {}", format_remaining(d)));
+            break;
         }
     }
     log.line("stopping, releasing inhibitions…");

@@ -22,7 +22,7 @@ mod types;
 pub use error::{Error, Result};
 pub use keeper::{declare_verified, Attempt, Config, Event, Keeper, KeeperHandle};
 pub use platform::{accessibility_trusted, new_platform, request_accessibility, Platform};
-pub use time::utc_timestamp;
+pub use time::{format_remaining, parse_duration, utc_timestamp};
 pub use types::{Diagnostics, Method, MethodStatus, Permission};
 
 /// Idle time must drop below this many seconds after declaring activity for
