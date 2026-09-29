@@ -1,0 +1,15 @@
+[package]
+name = "awake-core"
+description = "Keep the machine awake and chat presence \"Available\" by resetting the OS input idle timer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-foundation = "0.10"
+libc = "0.2"
