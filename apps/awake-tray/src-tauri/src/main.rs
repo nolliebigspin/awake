@@ -6,11 +6,11 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Mutex, MutexGuard};
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use awake_core::{
-    accessibility_trusted, new_platform, request_accessibility, utc_timestamp, Config, Error,
-    Event, Keeper, KeeperHandle,
+    accessibility_trusted, format_remaining, new_platform, request_accessibility, utc_timestamp,
+    Config, Error, Event, Keeper, KeeperHandle,
 };
 use serde_json::json;
 use tauri::image::Image;
@@ -21,6 +21,7 @@ use tauri::menu::{
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, RunEvent, Wry};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt as _};
+use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
 use tauri_plugin_updater::{Update, UpdaterExt};
 
@@ -29,6 +30,56 @@ const STORE_FILE: &str = "settings.json";
 const INTERVALS: [u64; 3] = [30, 60, 120];
 const THRESHOLD_SECS: u64 = 20;
 const POLL: Duration = Duration::from_secs(2);
+/// "Stop after" presets: minutes and menu label.
+const TIMERS: [(u64, &str); 6] = [
+    (30, "30 minutes"),
+    (60, "1 hour"),
+    (180, "3 hours"),
+    (360, "6 hours"),
+    (720, "12 hours"),
+    (1440, "24 hours"),
+];
+
+/// A running "Stop after" timer. Not persisted: a relaunch forgets it.
+#[derive(Clone, Copy, Debug)]
+struct Timer {
+    minutes: u64,
+    /// Wall clock, so time asleep anyway (lid closed) still counts.
+    ends: SystemTime,
+}
+
+impl Timer {
+    fn start(minutes: u64) -> Self {
+        Timer {
+            minutes,
+            ends: SystemTime::now() + Duration::from_secs(minutes * 60),
+        }
+    }
+
+    fn remaining(self) -> Duration {
+        self.ends
+            .duration_since(SystemTime::now())
+            .unwrap_or_default()
+    }
+}
+
+/// Presets offered in the menu; debug builds add a 1-minute one for testing.
+fn timer_presets() -> Vec<(u64, &'static str)> {
+    let mut presets = Vec::new();
+    if cfg!(debug_assertions) {
+        presets.push((1, "1 minute (debug)"));
+    }
+    presets.extend(TIMERS);
+    presets
+}
+
+fn timer_label(minutes: u64) -> String {
+    timer_presets()
+        .into_iter()
+        .find(|(m, _)| *m == minutes)
+        .map(|(_, label)| label.to_owned())
+        .unwrap_or_else(|| format_remaining(Duration::from_secs(minutes * 60)))
+}
 
 #[derive(Clone, Copy, Debug)]
 struct Settings {
@@ -61,6 +112,8 @@ impl Settings {
 /// Menu items we update after building the menu.
 struct Items {
     toggle: CheckMenuItem<Wry>,
+    /// "Never" is minutes 0.
+    timers: Vec<(u64, CheckMenuItem<Wry>)>,
     idle: MenuItem<Wry>,
     status: MenuItem<Wry>,
     intervals: Vec<(u64, CheckMenuItem<Wry>)>,
@@ -70,6 +123,7 @@ struct Items {
 }
 
 struct Texts {
+    toggle: String,
     idle: String,
     status: String,
     update: String,
@@ -78,6 +132,7 @@ struct Texts {
 #[derive(Default)]
 struct AppState {
     settings: Mutex<Settings>,
+    timer: Mutex<Option<Timer>>,
     keeper: Mutex<Option<KeeperHandle>>,
     items: Mutex<Option<Items>>,
     texts: Mutex<Option<Texts>>,
@@ -98,6 +153,7 @@ fn main() {
             MacosLauncher::LaunchAgent,
             None,
         ))
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::default())
@@ -128,6 +184,7 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
     *lock(&state.settings) = settings;
     *lock(&state.ax_trusted) = accessibility_trusted();
     *lock(&state.texts) = Some(Texts {
+        toggle: "Keep awake".into(),
         idle: "Idle: –".into(),
         status: "Starting…".into(),
         update: "Check for updates".into(),
@@ -282,6 +339,7 @@ fn spawn_poller(app: AppHandle) {
     std::thread::spawn(move || {
         let platform = new_platform();
         loop {
+            check_timer(&app);
             let idle = match platform.idle_seconds() {
                 Some(s) => format!("Idle: {s}s"),
                 None => "Idle: unknown".into(),
@@ -298,6 +356,78 @@ fn spawn_poller(app: AppHandle) {
             std::thread::sleep(POLL);
         }
     });
+}
+
+// --- timer ------------------------------------------------------------------
+
+/// Stop when the timer has run out; otherwise refresh the countdown.
+fn check_timer(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    let expired = {
+        let mut timer = lock(&state.timer);
+        match *timer {
+            Some(t) if SystemTime::now() >= t.ends => timer.take(),
+            _ => None,
+        }
+    };
+    let Some(t) = expired else {
+        sync_countdown(app);
+        return;
+    };
+    let label = timer_label(t.minutes);
+    log(app, &format!("timer ended after {label}"));
+    lock(&state.settings).enabled = false;
+    apply(app);
+    set_status(app, "Off: timer ended");
+    let notified = app
+        .notification()
+        .builder()
+        .title("Awake stopped")
+        .body(format!(
+            "Stopped after {label}. Your computer may sleep again."
+        ))
+        .show();
+    if let Err(e) = notified {
+        log(app, &format!("could not show notification: {e}"));
+    }
+}
+
+fn remaining(app: &AppHandle) -> Option<String> {
+    let timer = *lock(&app.state::<AppState>().timer);
+    timer.map(|t| format_remaining(t.remaining()))
+}
+
+/// "Keep awake · 2h 59m left" and the tooltip, only touched when they change.
+fn sync_countdown(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    let enabled = lock(&state.settings).enabled;
+    let left = remaining(app);
+    let toggle = match &left {
+        Some(r) => format!("Keep awake · {r} left"),
+        None => "Keep awake".into(),
+    };
+    {
+        let mut texts = lock(&state.texts);
+        let Some(t) = texts.as_mut() else { return };
+        if t.toggle == toggle {
+            return;
+        }
+        t.toggle = toggle.clone();
+    }
+    if let Some(items) = lock(&state.items).as_ref() {
+        let _ = items.toggle.set_text(&toggle);
+    }
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        let _ = tray.set_tooltip(Some(tooltip(enabled, left.as_deref())));
+    }
+}
+
+fn tooltip(enabled: bool, left: Option<&str>) -> String {
+    match (enabled, left) {
+        (true, Some(r)) => format!("Awake: on, stops in {r}"),
+        (true, None) => "Awake: on".into(),
+        (false, _) => "Awake: off".into(),
+    }
 }
 
 // --- menu -------------------------------------------------------------------
@@ -318,15 +448,38 @@ fn rebuild_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     let s = *lock(&state.settings);
     let ax = *lock(&state.ax_trusted);
     let autostart = app.autolaunch().is_enabled().unwrap_or(false);
-    let (idle_text, status_text, update_text) = {
+    let timer_minutes = lock(&state.timer).map_or(0, |t| t.minutes);
+    let (toggle_text, idle_text, status_text, update_text) = {
         let t = lock(&state.texts);
         let t = t.as_ref().expect("texts initialised in setup");
-        (t.idle.clone(), t.status.clone(), t.update.clone())
+        (
+            t.toggle.clone(),
+            t.idle.clone(),
+            t.status.clone(),
+            t.update.clone(),
+        )
     };
 
-    let toggle = CheckMenuItemBuilder::with_id("toggle", "Keep awake")
+    let toggle = CheckMenuItemBuilder::with_id("toggle", toggle_text)
         .checked(s.enabled)
         .build(app)?;
+    let timers = std::iter::once((0, "Never"))
+        .chain(timer_presets())
+        .map(|(m, label)| {
+            CheckMenuItemBuilder::with_id(format!("timer-{m}"), label)
+                .checked(timer_minutes == m)
+                .build(app)
+                .map(|item| (m, item))
+        })
+        .collect::<tauri::Result<Vec<_>>>()?;
+    let mut timer_menu = SubmenuBuilder::new(app, "Stop after");
+    for (m, item) in &timers {
+        timer_menu = timer_menu.item(item);
+        if *m == 0 {
+            timer_menu = timer_menu.separator();
+        }
+    }
+    let timer_menu = timer_menu.build()?;
     let idle = MenuItemBuilder::with_id("idle", idle_text)
         .enabled(false)
         .build(app)?;
@@ -357,6 +510,7 @@ fn rebuild_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 
     let mut builder = MenuBuilder::new(app)
         .item(&toggle)
+        .item(&timer_menu)
         .item(&idle)
         .item(&status)
         .separator()
@@ -376,6 +530,7 @@ fn rebuild_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 
     *lock(&state.items) = Some(Items {
         toggle,
+        timers,
         idle,
         status,
         intervals,
@@ -393,9 +548,13 @@ fn rebuild_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 fn sync_menu(app: &AppHandle) {
     let state = app.state::<AppState>();
     let s = *lock(&state.settings);
+    let timer_minutes = lock(&state.timer).map_or(0, |t| t.minutes);
     let items = lock(&state.items);
     if let Some(items) = items.as_ref() {
         let _ = items.toggle.set_checked(s.enabled);
+        for (m, item) in &items.timers {
+            let _ = item.set_checked(*m == timer_minutes);
+        }
         let _ = items.display.set_checked(s.keep_display_on);
         for (i, item) in &items.intervals {
             let _ = item.set_checked(*i == s.interval);
@@ -409,8 +568,9 @@ fn sync_menu(app: &AppHandle) {
         let _ = tray.set_icon(Some(tray_icon(s.enabled)));
         #[cfg(target_os = "macos")]
         let _ = tray.set_icon_as_template(true);
-        let _ = tray.set_tooltip(Some(if s.enabled { "Awake: on" } else { "Awake: off" }));
+        let _ = tray.set_tooltip(Some(tooltip(s.enabled, remaining(app).as_deref())));
     }
+    sync_countdown(app);
 }
 
 /// Update a remembered text (survives menu rebuilds) and its menu item.
@@ -450,12 +610,34 @@ fn on_menu(app: &AppHandle, id: &str) {
     {
         let mut s = lock(&state.settings);
         match id {
-            "toggle" => s.enabled = !s.enabled,
+            "toggle" => {
+                // Switching by hand, either way, cancels a running timer.
+                s.enabled = !s.enabled;
+                *lock(&state.timer) = None;
+            }
             "display" => s.keep_display_on = !s.keep_display_on,
-            _ => match id.strip_prefix("interval-").and_then(|i| i.parse().ok()) {
-                Some(i) => s.interval = i,
-                None => changed = false,
-            },
+            _ => {
+                if let Some(i) = id.strip_prefix("interval-").and_then(|i| i.parse().ok()) {
+                    s.interval = i;
+                } else if let Some(m) = id.strip_prefix("timer-").and_then(|m| m.parse().ok()) {
+                    let timer = (m > 0).then(|| Timer::start(m));
+                    *lock(&state.timer) = timer;
+                    if timer.is_some() {
+                        s.enabled = true;
+                    }
+                } else {
+                    changed = false;
+                }
+            }
+        }
+    }
+    if let Some(m) = id
+        .strip_prefix("timer-")
+        .and_then(|m| m.parse::<u64>().ok())
+    {
+        match m {
+            0 => log(app, "timer cleared"),
+            m => log(app, &format!("timer set: stop after {}", timer_label(m))),
         }
     }
     if changed {
