@@ -1,0 +1,66 @@
+# Local development toolchain. `mise install` then `mise tasks` to see what's available.
+[tools]
+rust = { version = "1.98.1", components = "clippy,rustfmt", targets = "aarch64-apple-darwin,x86_64-apple-darwin,x86_64-pc-windows-msvc,x86_64-unknown-linux-gnu" }
+bun = "1.4.2"
+"github:axodotdev/cargo-dist" = "0.33.0"
+
+[tasks.build]
+description = "Build the whole workspace (debug)"
+run = "cargo build --workspace"
+
+[tasks.test]
+description = "Run unit tests"
+run = "cargo test --workspace"
+
+[tasks.lint]
+description = "rustfmt + clippy on the host platform"
+run = ["cargo fmt --all --check", "cargo clippy --workspace --all-targets -- -D warnings"]
+
+[tasks.check-all]
+description = "Type-check awake-core and awake-cli for macOS, Windows and Linux from any host"
+run = [
+  "cargo check -p awake-core -p awake-cli --target aarch64-apple-darwin",
+  "cargo check -p awake-core -p awake-cli --target x86_64-pc-windows-msvc",
+  "cargo check -p awake-core -p awake-cli --target x86_64-unknown-linux-gnu",
+]
+
+[tasks.cli]
+description = "Run the CLI in the foreground (pass args after --)"
+run = "cargo run -p awake-cli --"
+
+[tasks.status]
+description = "Print platform diagnostics"
+run = "cargo run -p awake-cli -- status"
+
+[tasks.tray-deps]
+description = "Install the tray app's JS dependencies (Tauri CLI) with bun"
+dir = "apps/awake-tray"
+run = "bun install --frozen-lockfile"
+sources = ["package.json", "bun.lock"]
+outputs = ["node_modules/.bin/tauri"]
+
+[tasks.tray]
+description = "Run the tray app in dev mode"
+depends = ["tray-deps"]
+dir = "apps/awake-tray"
+run = "bun run tauri dev"
+
+[tasks.tray-bundle]
+description = "Build unsigned tray app bundles for the host platform (no updater artifacts)"
+depends = ["tray-deps"]
+dir = "apps/awake-tray"
+run = "bun run tauri build --config '{\"bundle\":{\"createUpdaterArtifacts\":false}}'"
+
+[tasks.icons]
+description = "Regenerate app + tray icons from scripts/make_icons.py"
+depends = ["tray-deps"]
+run = [
+  "python3 scripts/make_icons.py",
+  "cd apps/awake-tray && bun run tauri icon src-tauri/icons/app-icon.png -o src-tauri/icons",
+  # Desktop-only app: drop the mobile / Windows Store variants tauri icon adds.
+  "rm -rf apps/awake-tray/src-tauri/icons/{android,ios} apps/awake-tray/src-tauri/icons/Square*Logo.png apps/awake-tray/src-tauri/icons/StoreLogo.png",
+]
+
+[tasks.dist-plan]
+description = "Show what cargo-dist would build/publish"
+run = "dist plan"

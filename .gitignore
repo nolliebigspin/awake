@@ -1,0 +1,27 @@
+# Rust build output
+/target/
+**/target/
+
+# Tauri generated files (schemas, capabilities output)
+/apps/awake-tray/src-tauri/gen/
+
+# Node
+node_modules/
+
+# cargo-dist / release artifacts
+/dist-out/
+*.dmg
+*.msi
+*.AppImage
+*.deb
+
+# Tauri updater signing keys: never commit
+*.key
+*.key.pub
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

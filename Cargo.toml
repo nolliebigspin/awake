@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = ["crates/awake-core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT"
+repository = "https://github.com/OWNER/awake"
+homepage = "https://github.com/OWNER/awake"
+authors = ["Alec Winter"]
+
+[workspace.dependencies]
+awake-core = { path = "crates/awake-core", version = "0.1.0" }
+
+[profile.release]
+strip = true
