@@ -1,0 +1,26 @@
+[package]
+name = "awake-cli"
+description = "Keep your machine awake and Teams/Slack showing \"Available\""
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+readme = "../../README.md"
+
+[[bin]]
+name = "awake"
+path = "src/main.rs"
+
+[dependencies]
+awake-core.workspace = true
+clap = { version = "4", features = ["derive"] }
+ctrlc = { version = "3", features = ["termination"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[package.metadata.dist]
+dist = true

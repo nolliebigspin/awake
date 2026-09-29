@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
-members = ["crates/awake-core"]
+members = ["crates/awake-core", "crates/awake-cli"]
+default-members = ["crates/awake-core", "crates/awake-cli"]
 
 [workspace.package]
 version = "0.1.0"
