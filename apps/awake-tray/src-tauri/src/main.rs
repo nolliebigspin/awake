@@ -9,8 +9,9 @@ use std::sync::{Mutex, MutexGuard};
 use std::time::{Duration, Instant, SystemTime};
 
 use awake_core::{
-    accessibility_trusted, format_remaining, new_platform, request_accessibility, utc_timestamp,
-    Config, Error, Event, Keeper, KeeperHandle,
+    accessibility_trusted, format_remaining, new_platform, request_accessibility,
+    reset_accessibility, utc_timestamp, Config, Error, Event, Keeper, KeeperHandle,
+    PresenceMonitor, Transition,
 };
 use serde_json::json;
 use tauri::image::Image;
@@ -197,6 +198,14 @@ fn setup(app: &AppHandle) -> tauri::Result<()> {
         app,
         &format!("Awake {} started", app.package_info().version),
     );
+    let exe = std::env::current_exe().map_or_else(|_| "?".into(), |p| p.display().to_string());
+    log(
+        app,
+        &format!(
+            "Accessibility trusted: {:?} (exe: {exe})",
+            lock(&state.ax_trusted)
+        ),
+    );
 
     let menu = rebuild_menu(app)?;
     let tray = TrayIconBuilder::with_id(TRAY_ID)
@@ -279,7 +288,11 @@ fn start_keeper(app: &AppHandle, config: Config) -> KeeperHandle {
     let (handle, events) = Keeper::spawn(config);
     let app = app.clone();
     std::thread::spawn(move || {
+        let mut presence = PresenceMonitor::new();
         for event in events {
+            if let Some(t) = presence.observe(&event) {
+                on_presence(&app, t);
+            }
             on_keeper_event(&app, event);
         }
     });
@@ -323,6 +336,59 @@ fn on_keeper_event(app: &AppHandle, event: Event) {
     }
 }
 
+/// Tell the user once when presence is lost and once when it is back: the
+/// menu alone went unnoticed for a whole day.
+fn on_presence(app: &AppHandle, t: Transition) {
+    match t {
+        Transition::Lost {
+            needs_permission, ..
+        } => {
+            log(app, "presence lost: chat apps will show Away");
+            let body = if needs_permission && accessibility_trusted() == Some(false) {
+                "macOS isn't letting Awake move the pointer, so Teams and Slack will show \
+                 Away. Choose \"Fix Accessibility access…\" in the Awake menu."
+            } else if needs_permission {
+                "Awake isn't allowed to simulate input, so Teams and Slack will show Away. \
+                 Choose \"Show log\" in the Awake menu for details."
+            } else {
+                "Awake could not reset the idle timer, so Teams and Slack will show Away. \
+                 Choose \"Show log\" in the Awake menu for details."
+            };
+            notify(app, "Awake can't keep you Available", body);
+        }
+        Transition::Restored { method } => {
+            log(app, &format!("presence restored via {method}"));
+            notify(
+                app,
+                "Awake is working again",
+                "Teams and Slack will keep showing you as Available.",
+            );
+        }
+    }
+}
+
+fn notify(app: &AppHandle, title: &str, body: &str) {
+    let shown = app.notification().builder().title(title).body(body).show();
+    if let Err(e) = shown {
+        log(app, &format!("could not show notification: {e}"));
+    }
+}
+
+/// Reset our Accessibility entries, then ask again. Covers both a first-time
+/// grant and an entry that looks enabled in System Settings but is not
+/// applied to this build (the 0.2.0 failure).
+fn fix_accessibility(app: &AppHandle) {
+    let id = &app.config().identifier;
+    match reset_accessibility(id) {
+        Ok(()) => log(app, &format!("reset Accessibility entries for {id}")),
+        Err(e) => log(
+            app,
+            &format!("ERROR: could not reset Accessibility entries: {e}"),
+        ),
+    }
+    request_accessibility();
+}
+
 fn short_error(e: &Error) -> String {
     match e {
         Error::NoWorkingMethod { .. } if accessibility_trusted() == Some(false) => {
@@ -359,6 +425,10 @@ fn spawn_poller(app: AppHandle) {
                 let changed = std::mem::replace(&mut *lock(&state.ax_trusted), trusted) != trusted;
                 if changed {
                     log(&app, &format!("Accessibility trusted: {trusted:?}"));
+                    if trusted == Some(true) && lock(&state.settings).enabled {
+                        // The ⚠ status would linger until the next keeper tick.
+                        set_status(&app, "Accessibility granted; checking…");
+                    }
                     let _ = rebuild_menu(&app);
                 }
             }
@@ -400,17 +470,11 @@ fn check_timer(app: &AppHandle) {
     lock(&state.settings).enabled = false;
     apply(app);
     set_status(app, "Off: timer ended");
-    let notified = app
-        .notification()
-        .builder()
-        .title("Awake stopped")
-        .body(format!(
-            "Stopped after {label}. Your computer may sleep again."
-        ))
-        .show();
-    if let Err(e) = notified {
-        log(app, &format!("could not show notification: {e}"));
-    }
+    notify(
+        app,
+        "Awake stopped",
+        &format!("Stopped after {label}. Your computer may sleep again."),
+    );
 }
 
 fn remaining(app: &AppHandle) -> Option<String> {
@@ -540,7 +604,7 @@ fn rebuild_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         .item(&autostart_item)
         .separator();
     if ax == Some(false) {
-        builder = builder.text("ax", "Grant Accessibility access…");
+        builder = builder.text("ax", "Fix Accessibility access…");
     }
     let menu = builder
         .text("log", "Show log")
@@ -678,7 +742,11 @@ fn on_menu(app: &AppHandle, id: &str) {
             }
             sync_menu(app);
         }
-        "ax" => request_accessibility(),
+        "ax" => {
+            // Waits for System Settings to quit; keep the menu responsive.
+            let app = app.clone();
+            std::thread::spawn(move || fix_accessibility(&app));
+        }
         "log" => open_log(app),
         "update" => update(app.clone()),
         "quit" => {
