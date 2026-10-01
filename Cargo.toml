@@ -4,7 +4,7 @@ members = ["crates/awake-core", "crates/awake-cli", "apps/awake-tray/src-tauri"]
 default-members = ["crates/awake-core", "crates/awake-cli"]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 rust-version = "1.85"
 license = "MIT"
@@ -13,7 +13,7 @@ homepage = "https://github.com/nolliebigspin/awake"
 authors = ["Alec Winter"]
 
 [workspace.dependencies]
-awake-core = { path = "crates/awake-core", version = "0.2.0" }
+awake-core = { path = "crates/awake-core", version = "0.2.1" }
 
 # The profile that 'dist' will build with
 [profile.dist]
