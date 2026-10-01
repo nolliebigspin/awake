@@ -31,6 +31,8 @@ cask "awake-tray" do
   caveats <<~EOS
     Awake needs Accessibility access to keep Teams/Slack "Available":
       System Settings → Privacy & Security → Accessibility → enable Awake.
-    Use "Grant Accessibility access…" in the menu bar icon to open that pane.
+    Use "Fix Accessibility access…" in the menu bar icon to open that pane.
+    If Awake already looks enabled there but the menu still asks for access,
+    use that menu item anyway: it replaces the stale entry.
   EOS
 end

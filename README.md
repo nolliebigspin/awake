@@ -93,10 +93,12 @@ With the defaults, the idle time never gets much past **interval + threshold** (
 - **Check interval**: 30, 60 or 120 s. The threshold is fixed at 20 s.
 - **Keep display on**
 - **Launch at login**
-- **Grant Accessibility access…**: macOS only; shown only while access is missing.
+- **Fix Accessibility access…**: macOS only; shown only while access is missing. It clears Awake's Accessibility entry, closes System Settings if it's open, then registers this build again and opens the right pane.
 - **Show log**, **Check for updates**, **Quit Awake**
 
 Settings persist across launches, and Awake comes back in the same on/off state.
+
+When Awake can no longer keep you Available (for example, Accessibility is missing), it shows a notification once, not on every check. It shows another when resets work again.
 
 The display toggle has a side effect. Resetting the idle timer counts as user activity, so while resets are happening the display (and screen lock) also stays awake on most systems. **Keep display on** additionally holds a display assertion. That covers the case where no reset is needed or possible.
 
@@ -108,11 +110,20 @@ Grant it under **System Settings → Privacy & Security → Accessibility**, and
 
 | You run | Enable |
 |---|---|
-| Tray app | **Awake** (the menu item *Grant Accessibility access…* adds it to the list and opens the pane) |
+| Tray app | **Awake** (the menu item *Fix Accessibility access…* adds it to the list and opens the pane) |
 | CLI in a terminal | Your terminal app (Terminal, iTerm2, Ghostty, VS Code, …), because macOS attributes the request to it |
 | CLI via `awake install` | The `awake` binary itself: click **+**, press ⌘⇧G and paste the path printed by `awake install` (for example `/opt/homebrew/bin/awake`) |
 
 The grant is tied to the code signature. Signed tray updates keep it. Rebuilding the binary locally, or using an unsigned build, can silently revoke it. `awake status` then shows `NOT granted` again. Toggle the entry off and on, or remove and re-add it.
+
+### "Awake is enabled in System Settings, but it says *Needs Accessibility access*"
+
+The switch in System Settings can show **on** while macOS denies the running app. This is what broke 0.2.0 for a whole day of testing. It happens in two ways:
+
+- **The entry belongs to another build.** An unsigned local build with the same bundle ID (`dev.awake.tray`) was granted earlier. The entry keeps that build's code signature, so the signed app doesn't match it, but the row still reads *Awake* and stays on. `mise run tray-bundle` now builds as *Awake Local* (`dev.awake.tray.local`) so this can't recur.
+- **System Settings shows a stale list.** If the window was open while the entry was reset or re-added, switching the old row saves nothing.
+
+Fix: choose **Fix Accessibility access…** in the tray menu and switch Awake on in the pane that opens. By hand: quit System Settings, run `tccutil reset Accessibility dev.awake.tray` and `tccutil reset PostEvent dev.awake.tray`, then use the menu item and enable Awake. Within a few seconds the log (**Show log**) reads `Accessibility trusted: Some(true)`, and the next reset says `via CGEvent mouse nudge`.
 
 F15 is the last resort. On some Apple keyboard layouts F14 and F15 control display brightness, so you may see a brightness change if awake ever falls back to it.
 
@@ -170,12 +181,13 @@ The toolchain is managed with [mise](https://mise.jdx.dev): Rust 1.98.1 with cro
 mise install
 mise tasks            # list tasks
 mise run test         # unit tests (the Keeper logic is tested against a fake platform)
+mise run test-live    # macOS: real idle-timer resets (needs Accessibility for your terminal, ~30 s hands-off)
 mise run lint         # rustfmt + clippy
 mise run check-all    # type-check core + CLI for macOS, Windows and Linux from any host
 mise run status       # awake status from source
 mise run cli -- --interval 5 --threshold 3 -v
 mise run tray         # tray app in dev mode (runs `bun install` first)
-mise run tray-bundle  # unsigned local .app/.dmg/.msi/... (no updater artifacts)
+mise run tray-bundle  # unsigned local "Awake Local" .app/.dmg/.msi/... (own bundle ID, no updater artifacts)
 mise run icons        # regenerate icons (scripts/make_icons.py, no dependencies)
 ```
 
@@ -261,10 +273,13 @@ Run these on each OS before a release. "Untouched" means no keyboard, mouse or t
 
 - [ ] `awake status`: Accessibility shows `ok` for the terminal (or grant it first).
 - [ ] `awake status --test`: at least one CGEvent method reports **WORKS**. Expect `IOPMAssertionDeclareUserActivity` to fail verification.
+- [ ] `mise run test-live`: both live tests pass. The keeper test prints the idle time per tick, which never goes above 5 s.
 - [ ] `awake -v`, machine untouched for **10 minutes**: Teams (and Slack) stays **Available**, and every `tick: idle` line stays below about **interval + threshold** (80 s by default).
 - [ ] While it runs, `pmset -g assertions` lists `PreventUserIdleSystemSleep` owned by `awake`. After Ctrl+C it's gone.
 - [ ] Tray: no Dock icon; the icon switches between open and closed eye with **Keep awake**; the **Idle** line counts up and drops after a reset.
-- [ ] Tray without Accessibility: the status shows *Needs Accessibility access* and **Grant Accessibility access…** opens the right pane. After granting, the item disappears within a few seconds.
+- [ ] Tray without Accessibility (`tccutil reset Accessibility dev.awake.tray`, then relaunch): within one interval a notification says Awake can't keep you Available, and only one appears. The status shows *Needs Accessibility access*.
+- [ ] **Fix Accessibility access…** closes System Settings, reopens it on the Accessibility pane, and Awake is listed. After you enable it: within a few seconds the item disappears, the status reads *Accessibility granted; checking…*, and the next reset brings a "working again" notification.
+- [ ] The installed release build, untouched for **10 minutes** with Teams open: Teams stays **Available**, and the log shows `reset idle via CGEvent mouse nudge` on every check.
 - [ ] Tray: quit and relaunch; the previous on/off state and interval are restored.
 - [ ] **Launch at login** survives a logout and login.
 - [ ] `awake install`: grant Accessibility to the printed binary path, log out and in, then `tail -f ~/Library/Logs/awake.log` shows `verified` resets. `awake uninstall` removes the agent.
