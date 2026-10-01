@@ -12,6 +12,10 @@ run = "cargo build --workspace"
 description = "Run unit tests"
 run = "cargo test --workspace"
 
+[tasks.test-live]
+description = "macOS: check against the real OS that awake resets the idle timer (needs Accessibility for your terminal; don't touch the machine for ~30s)"
+run = "cargo test -p awake-core --test macos_live -- --ignored --test-threads=1 --nocapture"
+
 [tasks.lint]
 description = "rustfmt + clippy on the host platform"
 run = ["cargo fmt --all --check", "cargo clippy --workspace --all-targets -- -D warnings"]
@@ -49,7 +53,10 @@ run = "bun run tauri dev"
 description = "Build unsigned tray app bundles for the host platform (no updater artifacts)"
 depends = ["tray-deps"]
 dir = "apps/awake-tray"
-run = "bun run tauri build --config '{\"bundle\":{\"createUpdaterArtifacts\":false}}'"
+# Own identifier and name: an unsigned build sharing dev.awake.tray would take
+# over the installed app's Accessibility entry in System Settings, which then
+# looks enabled but no longer applies to the signed app.
+run = "bun run tauri build --config '{\"identifier\":\"dev.awake.tray.local\",\"productName\":\"Awake Local\",\"bundle\":{\"createUpdaterArtifacts\":false}}'"
 
 [tasks.icons]
 description = "Regenerate app + tray icons from scripts/make_icons.py"
