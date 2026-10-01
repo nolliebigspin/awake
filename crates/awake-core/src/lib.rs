@@ -16,12 +16,16 @@
 mod error;
 mod keeper;
 mod platform;
+mod presence;
 mod time;
 mod types;
 
 pub use error::{Error, Result};
-pub use keeper::{declare_verified, Attempt, Config, Event, Keeper, KeeperHandle};
-pub use platform::{accessibility_trusted, new_platform, request_accessibility, Platform};
+pub use keeper::{declare_verified, wait_until_idle, Attempt, Config, Event, Keeper, KeeperHandle};
+pub use platform::{
+    accessibility_trusted, new_platform, request_accessibility, reset_accessibility, Platform,
+};
+pub use presence::{PresenceMonitor, Transition};
 pub use time::{format_remaining, parse_duration, utc_timestamp};
 pub use types::{Diagnostics, Method, MethodStatus, Permission};
 

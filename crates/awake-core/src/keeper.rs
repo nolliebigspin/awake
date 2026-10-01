@@ -101,6 +101,20 @@ pub fn declare_verified<P: Platform + ?Sized>(p: &P, order: &[Method]) -> Result
     })
 }
 
+/// Wait (at most `timeout`) until the idle time reaches `secs`, so that a
+/// reset can be measured. False on input or when the idle time is unreadable.
+pub fn wait_until_idle<P: Platform + ?Sized>(p: &P, secs: u64, timeout: Duration) -> bool {
+    let deadline = Instant::now() + timeout;
+    while Instant::now() < deadline {
+        match p.idle_seconds() {
+            Some(s) if s >= secs => return true,
+            Some(_) => thread::sleep(Duration::from_millis(250)),
+            None => return false,
+        }
+    }
+    false
+}
+
 fn wait_for_reset<P: Platform + ?Sized>(p: &P) -> Option<u64> {
     let deadline = Instant::now() + VERIFY_WINDOW;
     loop {
@@ -311,12 +325,14 @@ mod tests {
     use std::rc::Rc;
 
     /// Fake backend: `working` methods reset idle to 0, `broken` ones error,
-    /// anything else "succeeds" without touching the idle time.
+    /// `denied` ones are refused by the OS (no Accessibility), anything else
+    /// "succeeds" without touching the idle time.
     struct Fake {
         idle: Rc<Cell<Option<u64>>>,
         methods: Vec<Method>,
         working: Vec<Method>,
         broken: Vec<Method>,
+        denied: Rc<RefCell<Vec<Method>>>,
         calls: Rc<RefCell<Vec<Method>>>,
         inhibited: Rc<Cell<Option<bool>>>,
     }
@@ -343,6 +359,9 @@ mod tests {
             if self.broken.contains(&m) {
                 return Err(Error::Os("boom".into()));
             }
+            if self.denied.borrow().contains(&m) {
+                return Err(Error::PermissionDenied("Accessibility".into()));
+            }
             if self.working.contains(&m) && self.idle.get().is_some() {
                 self.idle.set(Some(0));
             }
@@ -360,6 +379,7 @@ mod tests {
         idle: Rc<Cell<Option<u64>>>,
         calls: Rc<RefCell<Vec<Method>>>,
         inhibited: Rc<Cell<Option<bool>>>,
+        denied: Rc<RefCell<Vec<Method>>>,
         events: Receiver<Event>,
     }
 
@@ -367,11 +387,13 @@ mod tests {
         let idle = Rc::new(Cell::new(idle));
         let calls = Rc::new(RefCell::new(Vec::new()));
         let inhibited = Rc::new(Cell::new(None));
+        let denied = Rc::new(RefCell::new(Vec::new()));
         let fake = Fake {
             idle: idle.clone(),
             methods: vec![A, B, C],
             working: working.to_vec(),
             broken: broken.to_vec(),
+            denied: denied.clone(),
             calls: calls.clone(),
             inhibited: inhibited.clone(),
         };
@@ -382,6 +404,7 @@ mod tests {
             idle,
             calls,
             inhibited,
+            denied,
             events,
         }
     }
@@ -454,6 +477,43 @@ mod tests {
             Error::NoWorkingMethod { attempts, .. } => assert_eq!(attempts.len(), 3),
             e => panic!("unexpected {e:?}"),
         }
+    }
+
+    /// The 0.2.0 field failure: Accessibility missing, so only the
+    /// permission-free method runs and it does not move the idle time. The
+    /// user must hear about it once, and again when it works after granting.
+    #[test]
+    fn missing_accessibility_is_reported_once_and_recovery_detected() {
+        use crate::{PresenceMonitor, Transition};
+
+        let mut r = rig(&[B, C], &[], Some(100));
+        r.denied.borrow_mut().extend([B, C]);
+        let mut monitor = PresenceMonitor::new();
+        let mut transitions = Vec::new();
+        for _ in 0..5 {
+            r.idle.set(Some(100));
+            r.keeper.tick();
+            transitions.extend(drain(&r.events).iter().filter_map(|e| monitor.observe(e)));
+        }
+        assert_eq!(transitions.len(), 1, "{transitions:?}");
+        match &transitions[0] {
+            Transition::Lost {
+                needs_permission: true,
+                error,
+            } => assert!(error.to_string().contains("try harder"), "hint is kept"),
+            t => panic!("unexpected {t:?}"),
+        }
+
+        // The user grants Accessibility.
+        r.denied.borrow_mut().clear();
+        r.idle.set(Some(100));
+        r.keeper.tick();
+        let after: Vec<_> = drain(&r.events)
+            .iter()
+            .filter_map(|e| monitor.observe(e))
+            .collect();
+        assert_eq!(after, vec![Transition::Restored { method: B }]);
+        assert_eq!(r.keeper.preferred(), Some(B));
     }
 
     #[test]

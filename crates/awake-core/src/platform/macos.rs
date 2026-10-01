@@ -84,6 +84,7 @@ extern "C" {
         -> CGEventRef;
     fn CGEventPost(tap: u32, event: CGEventRef);
     fn CGPreflightPostEventAccess() -> bool;
+    fn CGRequestPostEventAccess() -> bool;
 }
 
 #[link(name = "ApplicationServices", kind = "framework")]
@@ -107,8 +108,52 @@ pub fn request_accessibility() {
         let key = CFString::wrap_under_get_rule(kAXTrustedCheckOptionPrompt);
         let opts = CFDictionary::from_CFType_pairs(&[(key, CFBoolean::true_value())]);
         AXIsProcessTrustedWithOptions(opts.as_concrete_TypeRef());
+        // CGEventPost checks the separate PostEvent service; register for it too.
+        CGRequestPostEventAccess();
     }
     let _ = Command::new("open").arg(ACCESSIBILITY_PANE).status();
+}
+
+/// Drop this bundle's Accessibility and PostEvent entries. System Settings can
+/// show an entry as enabled although it belongs to another build of the app
+/// (different code signature) or was never actually saved; macOS then denies
+/// us while the switch looks on. Resetting lets the next request register the
+/// running build afresh.
+///
+/// An open System Settings window keeps showing the old list, and switching
+/// a row there that no longer exists saves nothing, so it is closed too.
+pub fn reset_accessibility(bundle_id: &str) -> Result<()> {
+    let settings_open = || {
+        Command::new("/usr/bin/pgrep")
+            .args(["-x", "System Settings"])
+            .output()
+            .is_ok_and(|o| o.status.success())
+    };
+    if settings_open() {
+        let _ = Command::new("/usr/bin/pkill")
+            .args(["-x", "System Settings"])
+            .status();
+        // Let it exit, or the pane we open next lands in the closing window.
+        for _ in 0..20 {
+            if !settings_open() {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+    }
+    for service in ["Accessibility", "PostEvent"] {
+        let out = Command::new("/usr/bin/tccutil")
+            .args(["reset", service, bundle_id])
+            .output()
+            .map_err(|e| Error::Os(format!("tccutil: {e}")))?;
+        if !out.status.success() {
+            return Err(Error::Os(format!(
+                "tccutil reset {service} {bundle_id}: {}",
+                String::from_utf8_lossy(&out.stderr).trim()
+            )));
+        }
+    }
+    Ok(())
 }
 
 pub struct MacPlatform {
@@ -216,7 +261,10 @@ fn require_post_access() -> Result<()> {
 fn accessibility_hint() -> String {
     "posting input events needs Accessibility access. Open System Settings → Privacy & \
      Security → Accessibility and enable the app running awake (your terminal app for the \
-     CLI, the `awake` binary itself for the LaunchAgent, or Awake.app for the tray)."
+     CLI, the `awake` binary itself for the LaunchAgent, or Awake.app for the tray). If it \
+     already looks enabled there, macOS is not applying that entry (it belongs to another \
+     build, or System Settings shows a stale list): remove it with −, reopen System \
+     Settings and add it again, or use \"Fix Accessibility access…\" in the tray menu."
         .into()
 }
 

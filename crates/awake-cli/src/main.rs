@@ -4,11 +4,11 @@ mod service;
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant, SystemTime};
+use std::time::{Duration, SystemTime};
 
 use awake_core::{
-    declare_verified, format_remaining, new_platform, parse_duration, Config, Error, Event, Keeper,
-    VERIFY_BELOW_SECS,
+    declare_verified, format_remaining, new_platform, parse_duration, wait_until_idle, Config,
+    Error, Event, Keeper, VERIFY_BELOW_SECS,
 };
 use clap::{Args, Parser, Subcommand};
 
@@ -233,7 +233,11 @@ fn status(test: bool) -> Result<(), String> {
     for method in platform.activity_methods() {
         print!("  {:<40} ", method.name());
         let _ = std::io::Write::flush(&mut std::io::stdout());
-        if !wait_until_idle(platform.as_ref(), VERIFY_BELOW_SECS + 2) {
+        if !wait_until_idle(
+            platform.as_ref(),
+            VERIFY_BELOW_SECS + 2,
+            Duration::from_secs(30),
+        ) {
             println!("skipped (input detected or idle time unreadable)");
             continue;
         }
@@ -260,17 +264,4 @@ fn status(test: bool) -> Result<(), String> {
         }
     }
     Ok(())
-}
-
-/// Wait (max ~30s) until the idle time reaches `secs`, so a reset is measurable.
-fn wait_until_idle(p: &dyn awake_core::Platform, secs: u64) -> bool {
-    let deadline = Instant::now() + Duration::from_secs(30);
-    while Instant::now() < deadline {
-        match p.idle_seconds() {
-            Some(s) if s >= secs => return true,
-            Some(_) => std::thread::sleep(Duration::from_millis(250)),
-            None => return false,
-        }
-    }
-    false
 }

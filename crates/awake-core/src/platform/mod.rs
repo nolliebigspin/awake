@@ -69,3 +69,17 @@ pub fn request_accessibility() {
     #[cfg(target_os = "macos")]
     macos::request_accessibility();
 }
+
+/// macOS: drop the Accessibility entries of the app bundle `bundle_id`, so a
+/// following [`request_accessibility`] registers the running build afresh.
+/// Fixes an entry that looks enabled in System Settings but is not applied.
+/// No-op elsewhere.
+pub fn reset_accessibility(bundle_id: &str) -> Result<()> {
+    #[cfg(target_os = "macos")]
+    return macos::reset_accessibility(bundle_id);
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = bundle_id;
+        Ok(())
+    }
+}
