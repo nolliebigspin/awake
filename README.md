@@ -2,6 +2,12 @@
 
 Keep your machine awake, including VPNs, agents and network connections, **and** keep Microsoft Teams, Slack and similar apps showing **Available** instead of Away.
 
+**[awake-site.vercel.app](https://awake-site.vercel.app)** · free, open source, no account or telemetry
+
+<p align="center"><img src="docs/menu.png" alt="The Awake menu in the macOS menu bar" width="360"></p>
+
+It's for the times you're at your desk but not touching the keyboard: reading a long document, on a call from your phone, or waiting on a build or download. Your status stays honest, and the VPN and SSH sessions stay up. awake works by synthesizing tiny input events, so read [Corporate machines](#corporate-machines-edr-antivirus-and-policy) before you run it on a managed device.
+
 Two frontends share one core:
 
 - **Awake** (tray app): a menu bar or tray icon for macOS, Windows and Linux.
@@ -30,7 +36,7 @@ Every step is checked, and failures are reported through events, log lines and t
 
 ## Install
 
-Or download from the website. Every release also has version-less copies of the tray installers, so `https://github.com/nolliebigspin/awake/releases/latest/download/<name>` always points at the latest one: `Awake-macOS.dmg`, `Awake-Windows-Setup.exe`, `Awake-Windows.msi`, `Awake-Linux-amd64.deb`, `Awake-Linux-x86_64.AppImage`.
+The quickest way to get the tray app is the download buttons on the [website](https://awake-site.vercel.app). Every release also has version-less copies of the tray installers, so `https://github.com/nolliebigspin/awake/releases/latest/download/<name>` always points at the latest one: `Awake-macOS.dmg`, `Awake-Windows-Setup.exe`, `Awake-Windows.msi`, `Awake-Linux-amd64.deb`, `Awake-Linux-x86_64.AppImage`.
 
 ### Tray app
 
@@ -41,6 +47,8 @@ Or download from the website. Every release also has version-less copies of the 
 | Windows | `Awake_<version>_x64-setup.exe` (per-user NSIS, no admin) or `Awake_<version>_x64_en-US.msi` |
 | Debian / Ubuntu | `sudo apt install ./Awake_<version>_amd64.deb` |
 | Other Linux | `chmod +x Awake_<version>_amd64.AppImage && ./Awake_<version>_amd64.AppImage` |
+
+The macOS app is signed with a Developer ID and notarized by Apple, so Gatekeeper opens it without warnings. The Windows installers are not code-signed yet, so SmartScreen may ask you to confirm on first run.
 
 The tray app updates itself from GitHub Releases: **Check for updates** in the menu.
 
