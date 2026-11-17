@@ -1,0 +1,16 @@
+{
+  "name": "awake-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "3.7.5",
+    "@vercel/analytics": "2.0.1",
+    "astro": "7.4.12"
+  }
+}

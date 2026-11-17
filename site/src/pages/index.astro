@@ -1,0 +1,233 @@
+---
+import { Image } from "astro:assets";
+import Base from "../layouts/Base.astro";
+import menu from "../assets/menu.png";
+import {
+  REPO_URL,
+  SITE_URL,
+  author,
+  cliCommands,
+  cliInstall,
+  description,
+  downloadUrl,
+  faq,
+  features,
+  name,
+  platforms,
+  summary,
+  tagline,
+  toText,
+} from "../data/site";
+
+const title = "awake: keep your machine awake and your status Available";
+const primary = (os: string) => platforms.find((p) => p.name === os)!.downloads[0];
+const screenshotUrl = new URL(menu.src, SITE_URL).href;
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: `${SITE_URL}/`,
+      name,
+      description,
+      inLanguage: "en",
+      publisher: { "@id": `${author.url}/#person` },
+    },
+    {
+      "@type": "Person",
+      "@id": `${author.url}/#person`,
+      name: author.name,
+      url: author.url,
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${SITE_URL}/#software`,
+      name,
+      alternateName: "Awake",
+      description: summary,
+      url: `${SITE_URL}/`,
+      image: `${SITE_URL}/icon.png`,
+      screenshot: screenshotUrl,
+      applicationCategory: "UtilitiesApplication",
+      operatingSystem: platforms.map((p) => p.os).join(", "),
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      isAccessibleForFree: true,
+      license: "https://opensource.org/licenses/MIT",
+      downloadUrl: platforms.flatMap((p) => p.downloads.map((d) => downloadUrl(d.file))),
+      installUrl: `${SITE_URL}/#download`,
+      softwareHelp: { "@type": "CreativeWork", url: `${REPO_URL}#readme` },
+      featureList: features.map((f) => `${f.title}: ${f.text}`),
+      author: { "@id": `${author.url}/#person` },
+      sameAs: [REPO_URL],
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${SITE_URL}/#faq`,
+      mainEntity: faq.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: { "@type": "Answer", text: toText(item.answer) },
+      })),
+    },
+  ],
+};
+---
+
+<Base title={title} description={description} jsonLd={jsonLd}>
+  <main>
+    <header class="hero">
+      <img class="icon" src="/icon.png" alt="" width="88" height="88" />
+      <h1>awake</h1>
+      <p class="lead">{tagline}</p>
+      <p>
+        A small menu bar app and command-line tool. It stops your computer from sleeping, and keeps Teams, Slack and
+        similar apps from switching you to Away. Set a timer, and it switches itself off.
+      </p>
+      <div class="downloads">
+        <a class="button" href={downloadUrl(primary("macOS").file)} data-download={primary("macOS").file} data-placement="hero">
+          Download for macOS
+        </a>
+        <a class="button secondary" href={downloadUrl(primary("Windows").file)} data-download={primary("Windows").file} data-placement="hero">
+          Windows
+        </a>
+        <a class="button secondary" href={downloadUrl(primary("Linux").file)} data-download={primary("Linux").file} data-placement="hero">
+          Linux
+        </a>
+      </div>
+      <p class="small">Free and open source · MIT License · <a href={REPO_URL}>Source on GitHub</a></p>
+      <Image
+        class="screenshot"
+        src={menu}
+        width={330}
+        densities={[1, 2]}
+        alt="The Awake menu on macOS: Keep awake is checked, idle time reads 0 seconds, and the status line says presence is kept via a CGEvent mouse nudge."
+        loading="eager"
+      />
+    </header>
+
+    <section class="features" aria-label="Features">
+      {
+        features.map((f) => (
+          <div class="card">
+            <h3>{f.title}</h3>
+            <p>{f.text}</p>
+          </div>
+        ))
+      }
+    </section>
+
+    <section id="download" aria-labelledby="download-title">
+      <h2 id="download-title">Download</h2>
+      <div class="platforms">
+        {
+          platforms.map((p) => (
+            <div class="platform">
+              <div>
+                <h3>{p.name}</h3>
+                <p class="small">{p.requirements}</p>
+              </div>
+              <div class="platform-links">
+                {p.downloads.map((d) => (
+                  <a
+                    class={d.primary ? "button" : "alt"}
+                    href={downloadUrl(d.file)}
+                    data-download={d.file}
+                    data-placement="download-section"
+                    aria-label={`Download ${d.label} for ${p.name}`}
+                  >
+                    {d.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))
+        }
+      </div>
+      <p class="small">
+        On a Mac with Homebrew: <code>brew install --cask nolliebigspin/tap/awake-tray</code> · <a href={`${REPO_URL}/releases/latest`}>All files and checksums</a>
+      </p>
+    </section>
+
+    <section id="cli" aria-labelledby="cli-title">
+      <h2 id="cli-title">Command line</h2>
+      <p>Prefer the terminal? The <code>awake</code> command does the same as the app.</p>
+
+      <h3 class="step"><span>1</span> Install</h3>
+      {
+        cliInstall.map((c) => (
+          <>
+            <p class="label">{c.label}</p>
+            <pre><code>{c.command}</code></pre>
+          </>
+        ))
+      }
+
+      <h3 class="step"><span>2</span> Use</h3>
+      <dl class="commands">
+        {
+          cliCommands.map((c) => (
+            <>
+              <dt><code>{c.command}</code></dt>
+              <dd set:html={c.html} />
+            </>
+          ))
+        }
+      </dl>
+      <p class="small">All options: <code>awake --help</code> or the <a href={`${REPO_URL}#usage`}>README</a>.</p>
+    </section>
+
+    <section id="faq" aria-labelledby="faq-title">
+      <h2 id="faq-title">Questions</h2>
+      {
+        faq.map((item) => (
+          <details>
+            <summary>{item.question}</summary>
+            <p set:html={item.answer} />
+          </details>
+        ))
+      }
+    </section>
+  </main>
+</Base>
+
+<script>
+  import { track } from "@vercel/analytics";
+
+  // Count download clicks. Custom events need the Vercel Pro plan; on Hobby
+  // they are dropped and page views still work.
+  document.addEventListener("click", (event) => {
+    const link = (event.target as Element).closest<HTMLAnchorElement>("a[data-download]");
+    if (!link) return;
+    track("Download", {
+      file: link.dataset.download ?? "",
+      placement: link.dataset.placement ?? "",
+    });
+  });
+
+  // Copy buttons on code blocks. The page works without them.
+  if (navigator.clipboard) {
+    document.querySelectorAll("pre").forEach((pre) => {
+      const wrap = document.createElement("div");
+      wrap.className = "codeblock";
+      pre.replaceWith(wrap);
+      wrap.appendChild(pre);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "copy";
+      button.textContent = "Copy";
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(pre.innerText.trim());
+          button.textContent = "Copied";
+        } catch {
+          button.textContent = "Copy failed";
+        }
+        setTimeout(() => (button.textContent = "Copy"), 1500);
+      });
+      wrap.appendChild(button);
+    });
+  }
+</script>

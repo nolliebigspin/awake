@@ -379,3 +379,22 @@ footer nav {
     margin-bottom: 12px;
   }
 }
+
+/* Screenshot */
+
+.screenshot {
+  display: block;
+  width: 330px;
+  max-width: 100%;
+  height: auto;
+  margin: 40px auto 0;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.18);
+}
+
+/* 404 */
+
+.notfound {
+  padding-top: 96px;
+  text-align: center;
+}

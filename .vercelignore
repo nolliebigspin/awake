@@ -1,0 +1,7 @@
+# The Vercel project's root directory is site/, but CLI deploys upload from
+# the repo root and ignore .gitignore. Upload only the website (and never the
+# multi-GB Rust target/ folder).
+/*
+!/site
+/site/dist
+/site/.astro
